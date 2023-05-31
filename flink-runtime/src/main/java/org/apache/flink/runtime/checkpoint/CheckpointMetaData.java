@@ -20,7 +20,7 @@ package org.apache.flink.runtime.checkpoint;
 
 import java.io.Serializable;
 
-/** Encapsulates all the meta data for a checkpoint. */
+/** Encapsulates all the metadata for a checkpoint. */
 public class CheckpointMetaData implements Serializable {
 
     private static final long serialVersionUID = -2387652345781312442L;

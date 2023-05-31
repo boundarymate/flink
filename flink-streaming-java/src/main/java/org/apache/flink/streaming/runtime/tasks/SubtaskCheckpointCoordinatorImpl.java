@@ -295,17 +295,17 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
         // Step (0): Record the last triggered checkpointId and abort the sync phase of checkpoint
         // if necessary.
         lastCheckpointId = metadata.getCheckpointId();
-        if (checkAndClearAbortedStatus(metadata.getCheckpointId())) {
+        if (checkAndClearAbortedStatus(lastCheckpointId)) {
             // broadcast cancel checkpoint marker to avoid downstream back-pressure due to
             // checkpoint barrier align.
-            operatorChain.broadcastEvent(new CancelCheckpointMarker(metadata.getCheckpointId()));
+            operatorChain.broadcastEvent(new CancelCheckpointMarker(lastCheckpointId));
             channelStateWriter.abort(
-                    metadata.getCheckpointId(),
+                    lastCheckpointId,
                     new CancellationException("checkpoint aborted via notification"),
                     true);
             LOG.info(
                     "Checkpoint {} has been notified as aborted, would not trigger any checkpoint.",
-                    metadata.getCheckpointId());
+                    lastCheckpointId);
             return;
         }
 
@@ -313,12 +313,12 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
         // connection), revert it here so that it can jump over output data
         if (options.getAlignment() == CheckpointOptions.AlignmentType.FORCED_ALIGNED) {
             options = options.withUnalignedSupported();
-            initInputsCheckpoint(metadata.getCheckpointId(), options);
+            initInputsCheckpoint(lastCheckpointId, options);
         }
 
         // Step (1): Prepare the checkpoint, allow operators to do some pre-barrier work.
         //           The pre-barrier work should be nothing or minimal in the common case.
-        operatorChain.prepareSnapshotPreBarrier(metadata.getCheckpointId());
+        operatorChain.prepareSnapshotPreBarrier(lastCheckpointId);
 
         // Step (2): Send the checkpoint barrier downstream
         LOG.debug(
@@ -332,12 +332,12 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
         operatorChain.broadcastEvent(checkpointBarrier, options.isUnalignedCheckpoint());
 
         // Step (3): Register alignment timer to timeout aligned barrier to unaligned barrier
-        registerAlignmentTimer(metadata.getCheckpointId(), operatorChain, checkpointBarrier);
+        registerAlignmentTimer(lastCheckpointId, operatorChain, checkpointBarrier);
 
         // Step (4): Prepare to spill the in-flight buffers for input and output
         if (options.needsChannelState()) {
             // output data already written while broadcasting event
-            channelStateWriter.finishOutput(metadata.getCheckpointId());
+            channelStateWriter.finishOutput(lastCheckpointId);
         }
 
         // Step (5): Take the state snapshot. This should be largely asynchronous, to not impact

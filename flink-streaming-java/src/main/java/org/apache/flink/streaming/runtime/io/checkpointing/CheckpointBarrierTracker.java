@@ -129,8 +129,8 @@ public class CheckpointBarrierTracker extends CheckpointBarrierHandler {
             // add one to the count to that barrier and check for completion
             int numChannelsNew = barrierCount.markChannelAligned(channelInfo);
             if (numChannelsNew == barrierCount.getTargetChannelCount()) {
-                // checkpoint can be triggered (or is aborted and all barriers have been seen)
-                // first, remove this checkpoint and all all prior pending
+                // checkpoint can be triggered (or is aborted, and all barriers have been seen)
+                // first, remove this checkpoint and all prior pending
                 // checkpoints (which are now subsumed)
                 for (int i = 0; i <= pos; i++) {
                     pendingCheckpoints.pollFirst();
@@ -142,10 +142,10 @@ public class CheckpointBarrierTracker extends CheckpointBarrierHandler {
                 }
             }
         } else {
-            // first barrier for that checkpoint ID
-            // add it only if it is newer than the latest checkpoint.
+            // the first barrier for that checkpoint ID
+            // adds it only if it is newer than the latest checkpoint.
             // if it is not newer than the latest checkpoint ID, then there cannot be a
-            // successful checkpoint for that ID anyways
+            // successful checkpoint for that ID anyway
             if (barrierId > latestPendingCheckpointID) {
                 markAlignmentStart(barrierId, receivedBarrier.getTimestamp());
                 latestPendingCheckpointID = barrierId;
